@@ -21,6 +21,7 @@ Special Instructions: None
 import sys
 import matplotlib.pylab as plt
 import numpy as np
+import statistics as st
 
 # Pseudocode:
 # 1) get the name of the data file from the user on the command line
@@ -45,7 +46,41 @@ def parse_data(infile):
     wdates = []             # list of dates data
     wtemperatures = []      # list of temperarture data
 
+    with open(infile, mode='r') as openfile:
+        openfile.readline()
+        for rec in openfile:
+            columns = rec.split()
+            wdates.append(columns[2])
+            wtemperatures.append(float(columns[3]))
+
     return wdates, wtemperatures
+
+def parse_data2(infile):
+    """
+    Function to parse weather data and find max and min temperatures
+    :param infile: weather data input file
+    :return: two dictionaries, one with minimum temps, one with maximum temps
+    """
+    wmin = {}      # list of dates data
+    wmax = {}      # list of temperarture data
+    with open(infile, mode='r') as openfile:
+        openfile.readline()
+        for rec in openfile:
+            columns = rec.split()
+            year = columns[2][0:4]
+            if float(columns[17]) != 9999.9 and float(columns[18]) != 9999.9:
+                if year in wmin:
+                    wmin[year].append(float(columns[18]))
+                    wmax[year].append(float(columns[17]))
+                else:
+                    wmin[year] = []
+                    wmin[year].append(float(columns[18]))
+                    wmax[year] = []
+                    wmax[year].append(float(columns[17]))
+    for key in wmin:
+        wmin[key] = min(wmin[key])
+        wmax[key] = max(wmax[key])
+    return wmin, wmax
 
 
 def calc_mean_std_dev(wdates, wtemp):
@@ -56,8 +91,19 @@ def calc_mean_std_dev(wdates, wtemp):
     :param wtemp: temperature per month
     :return: means, std_dev: months_mean and std_dev lists
     """
+    monthTemp = {'01':[],'02':[],'03':[],'04':[],'05':[],'06':[],'07':[],'08':[],'09':[],'10':[],'11':[],'12':[],}
+    i = 1
+    while i < len(wdates):
+        monthTemp[wdates[i]].append(wtemp[i])
+        i = i + 1
     means = []
     std_dev = []
+
+    #Calculate mean and STD_DEV
+    for key in monthTemp:
+        means.append(st.mean(monthTemp[key]))
+        std_dev.append(st.stdev(monthTemp[key], st.mean(monthTemp[key])))
+
 
     return means, std_dev
 
@@ -77,7 +123,8 @@ def plot_data_task1(wyear, wtemp, month_mean, month_std):
     plt.title("Temperatures at Ogden")
     plt.plot(wyear, wtemp, "bo")
     plt.ylabel("Temperature, F")
-    plt.xlabel("Decimal Year")
+    plt.xlabel("Year")
+    plt.ylim([-20, 100])
 
     plt.subplot(2, 1, 2)                # select second subplot
     plt.ylabel("Temperature, F")
@@ -85,7 +132,7 @@ def plot_data_task1(wyear, wtemp, month_mean, month_std):
               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     monthNumber = list(range(1, 13, 1))
     plt.xlim([0.7, 13])
-    plt.ylim([0, 90])
+    plt.ylim([0, 100])
     width = 0.8
     plt.bar(monthNumber, month_mean, yerr=month_std, width=width,
             color="lightgreen", ecolor="black", linewidth=1.5)
@@ -93,26 +140,39 @@ def plot_data_task1(wyear, wtemp, month_mean, month_std):
     plt.show()      # display plot
 
 
-def plot_data_task2(xxx):
+def plot_data_task2(wmin, wmax):
     """
-    Create plot for Task 2. Describe in here what you are plotting
-    Also modify the function to take the params you think you will need
-    to plot the requirements.
-    :param: xxx??
+    Create plot for Task 2 which will plot the minimum and maximum temperature values for each year.
+    :param: wmin: A dictionary with years as keys, and the minimum temperatures as the value of each.
+    :param: wmax: A dictionary with years as keys, and the maximum temperatures as the value of each.
     """
-    pass
+    year = []
+    for key in wmin:
+        year.append(float(key))
+
+    plt.xlabel('Year')
+    plt.ylabel('Temperature, F')
+    plt.plot(year, list(wmin.values()), "ob", label='Minimum')
+    plt.plot(year, list(wmax.values()), "or", label='Maximum')
+    plt.legend()
+    plt.show()
 
 
 def main(infile):
     weather_data = infile    # take data file as input parameter to file
     wdates, wtemperatures = parse_data(weather_data)
+    wmin, wmax = parse_data2(infile)
+    wyear = []
+    wmonth = []
+    for rec in wdates:
+        wyear.append(int(rec[0:4]))
+        wmonth.append(rec[4:6])
     # Calculate mean and standard dev per month
-    month_mean, month_std = calc_mean_std_dev(wdates, wtemperatures)
-    # TODO: Make sure you have a list of:
-    #       1) years, 2) temperature, 3) month_mean, 4) month_std
-    plot_data_task1(wyear, wtemp, month_mean, month_std)
-    # TODO: Create the data you need for this
-    # plot_data_task2(xxx)
+    month_mean, month_std = calc_mean_std_dev(wmonth, wtemperatures)
+    # Plot data
+    plot_data_task1(wyear, wtemperatures, month_mean, month_std)
+    #Plot the 2nd task data
+    plot_data_task2(wmin, wmax)
 
 
 
